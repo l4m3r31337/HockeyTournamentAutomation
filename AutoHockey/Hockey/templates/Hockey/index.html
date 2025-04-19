@@ -1,0 +1,96 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Хоккейные турниры</title>
+    <style>
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #fff;
+    color: #000;
+}
+
+header {
+    background-color: #1166c4;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.logo {
+    height: 60px;
+    margin-right: 40px;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 25px;
+    padding: 0;
+}
+
+.nav-links li a {
+    color: white;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.profile-icon {
+    margin-left: auto;
+    font-size: 24px;
+    color: white;
+    display: block;
+}
+
+main {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+main h1 {
+    font-size: 28px;
+    margin-bottom: 30px;
+}
+
+.image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <img src="{% static 'Hockey/logo.png' %}" alt="Логотип" class="logo">
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="../">Главная</a></li>
+                    <li><a href="#">Турниры</a></li>
+                    <li><a href="#">Рейтинги</a></li>
+                    <li><a href="#">О нас</a></li>
+                    <li><a href="#">Контакты</a></li>
+                </ul>
+            </nav>
+            <a class="profile-icon" href="profile"><img src="{% static 'Hockey/user.svg' %}"></a>
+        </div>
+    </header>
+
+    <main>
+        <h1>Хоккейные турниры ДЮСШ “Спартаковец”</h1>
+        <div class="image-container">
+            <img src="{% static 'Hockey/hockey_team.jpg' %}" alt="Команда у ворот">
+        </div>
+    </main>
+</body>
+</html>
