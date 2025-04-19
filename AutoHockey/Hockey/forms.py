@@ -50,3 +50,28 @@ class RegisterForm(UserCreationForm):
     class Meta:
         model = CustomUser
         fields = ('surname', 'name', 'patronymic', 'phone', 'password1', 'password2')
+
+
+class ProfileForm(forms.Form):
+    last_name = forms.CharField(label='Фамилия', widget=forms.TextInput(attrs={'placeholder': 'Фамилия'}))
+    first_name = forms.CharField(label='Имя', widget=forms.TextInput(attrs={'placeholder': 'Имя'}))
+    middle_name = forms.CharField(label='Отчество', widget=forms.TextInput(attrs={'placeholder': 'Отчество'}))
+    phone = forms.CharField(label='Номер телефона', widget=forms.TextInput(attrs={'placeholder': 'Номер телефона'}))
+    age = forms.IntegerField(label='Возраст', widget=forms.NumberInput(attrs={'placeholder': 'Возраст'}))
+    gender = forms.ChoiceField(label='Пол', choices=[('male', 'Мужской'), ('female', 'Женский')])
+
+    skill_level = forms.ChoiceField(label='Уровень подготовки', choices=[
+        ('beginner', 'Начинающий'),
+        ('intermediate', 'Средний'),
+        ('advanced', 'Продвинутый'),
+    ])
+
+    position = forms.ChoiceField(label='Амплуа', choices=[
+        ('forward', 'Нападающий'),
+        ('goalkeeper', 'Вратарь'),
+    ])
+
+    medical_doc = forms.FileField(label='Медицинское заключение', required=False)
+    medical_consent = forms.BooleanField(required=False)
+
+    identity_doc = forms.FileField(label='Удостоверение личности', required=False)
