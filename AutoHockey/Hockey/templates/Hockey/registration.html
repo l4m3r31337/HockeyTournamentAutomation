@@ -1,0 +1,120 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <title>Регистрация</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" />
+    <style>
+        body {
+            background-color: #e0e0e0; /* светлый фон */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        .registration-card {
+            background-color: #ffffff; 
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 40px 30px;
+            max-width: 450px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .logo {
+            width: 80px;
+            margin: 0 auto 20px;
+        }
+
+        h2 {
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        input[type="text"],
+        input[type="tel"],
+        input[type="password"] {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f0f0f0;
+            font-size: 18px;
+        }
+
+        .checkbox-label {
+            font-size: 12px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .checkbox-label input {
+            margin-right: 8px;
+        }
+
+        .btn-custom {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            background-color: #007bff; 
+            color: #fff;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-custom:hover {
+            background-color: #0069d9;
+        }
+
+        .bottom-text {
+            margin-top: 15px;
+            font-size: 12px;
+        }
+        .bottom-text a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        .bottom-text a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="registration-card">
+        <!-- Логотип -->
+        <img src="{% static 'Hockey/logo.png' %}" alt="Логотип" class="logo" />
+
+        <!-- Заголовок -->
+        <h2>Регистрация</h2>
+
+        <!-- Форма -->
+        <form method="POST" action="{% url 'register' %}">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="form-group">
+                    {{ field }}
+                    {% if field.errors %}
+                        <div class="text-danger">{{ field.errors|striptags }}</div>
+                    {% endif %}
+                </div>
+            {% endfor %}
+            <div style="display: flex; gap: 20px;"><input style="display: block; margin-bottom: 15px;" type="checkbox" checked><p style="font-size: 15px">Я согласен(а) на обработку персональных данных</p></div>
+            <button type="submit" class="btn-custom">Продолжить</button>
+        </form>
+
+        <!-- Нижний текст -->
+        <div class="bottom-text">
+            Уже зарегистрированы? <a href="{% url 'login' %}">Войти</a>
+        </div>
+    </div>
+</body>
+</html>
