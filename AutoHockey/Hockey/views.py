@@ -5,6 +5,7 @@
 # from .models import UserProfile
 # from django.contrib.auth.models import User
 
+import random
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from .forms import SimpleRegistrationForm, UserProfileForm
@@ -43,3 +44,15 @@ def profile(request):
     else:
         form = UserProfileForm(instance=profile)
     return render(request, 'hockey/profile.html', {'form': form})
+
+
+def rating(request):
+    players = [
+        f"игрок {i+1}" for i in range(50)
+    ]
+    player_data = [
+        {'name': name, 'rating': random.randint(2000, 8000)}
+        for name in players
+    ]
+    sorted_players = sorted(player_data, key=lambda x: x['rating'], reverse=True)
+    return render(request, 'hockey/rating.html', {'players': sorted_players})
