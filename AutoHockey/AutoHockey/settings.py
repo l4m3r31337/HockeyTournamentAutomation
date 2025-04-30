@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-rb=^xd7rvei$e=!q_#f#b4!)@_((kb*dh_pw#1yx$rho3ivbx9'
+SECRET_KEY = 'django-insecure-v94qotu(g1xf2kdtt8u93p92$dtik6m1zk$y5xq0s_5_rgg40$'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -51,8 +51,6 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = 'AutoHockey.urls'
-
-AUTH_USER_MODEL = 'Hockey.CustomUser'
 
 TEMPLATES = [
     {
