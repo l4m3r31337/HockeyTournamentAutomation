@@ -115,15 +115,19 @@ table {
         <table>
             <thead>
                 <tr>
-                    <th>ФИО</th>
+                    <th>№</th>
+                    <th>Имя пользователя</th>
                     <th>Рейтинг</th>
+                    <th>Возраст</th>
                 </tr>
             </thead>
             <tbody>
                 {% for player in players %}
                 <tr>
+                    <td>{{ forloop.counter }}</td>
                     <td>{{ player.name }}</td>
                     <td>{{ player.rating }}</td>
+                    <td>{{ player.age|default:"-" }}</td>
                 </tr>
                 {% endfor %}
             </tbody>

@@ -47,12 +47,13 @@ def profile(request):
 
 
 def rating(request):
-    players = [
-        f"игрок {i+1}" for i in range(50)
-    ]
-    player_data = [
-        {'name': name, 'rating': random.randint(2000, 8000)}
-        for name in players
-    ]
-    sorted_players = sorted(player_data, key=lambda x: x['rating'], reverse=True)
-    return render(request, 'hockey/rating.html', {'players': sorted_players})
+    profiles = UserProfile.objects.exclude(skill_level='').order_by('-skill_level')
+    
+    players_data = []
+    for profile in profiles:
+        players_data.append({
+            'name': profile.user.username,
+            'rating': profile.skill_level
+        })
+    
+    return render(request, 'hockey/rating.html', {'players': players_data})
