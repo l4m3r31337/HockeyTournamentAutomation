@@ -53,7 +53,8 @@ def rating(request):
     for profile in profiles:
         players_data.append({
             'name': profile.user.username,
-            'rating': profile.skill_level
+            'rating': profile.skill_level,
+            'age': profile.age
         })
     
     return render(request, 'hockey/rating.html', {'players': players_data})
