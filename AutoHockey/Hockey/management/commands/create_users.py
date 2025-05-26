@@ -25,11 +25,11 @@ class Command(BaseCommand):
             User.objects.all().delete()
         
         created_count = 0
-        for i in range(1, 37):
+        for i in range(1, 25):
             try:
                 # Создаем пользователя
                 user = User.objects.create_user(
-                    username=f'Пользователь{i}',
+                    username=f'ТестовыйПользователь{i}',
                     password=f'user{i}pass123',
                     email=f'user{i}@example.com'
                 )

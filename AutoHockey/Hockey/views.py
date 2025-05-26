@@ -27,7 +27,9 @@ def registration(request):
 
             UserProfile.objects.create(
                 user=user,
-                middle_name=form.cleaned_data['middle_name']
+                first_name=form.cleaned_data['first_name'],
+                middle_name=form.cleaned_data['middle_name'],
+                last_name=form.cleaned_data['last_name']
             )
             login(request, user)
             return redirect('profile')
@@ -81,6 +83,17 @@ def tournament(request):
     
     # Получаем активные турниры
     tournaments = Tournament.objects.filter(is_completed=False)
+
+    if request.method == 'POST' and 'rename_tournament' in request.POST:
+        tournament_id = request.POST.get('edit_tournament_id')
+        new_name = request.POST.get('new_name')
+        Tournament.objects.filter(id=tournament_id).update(name=new_name)
+        return redirect('tournament')
+    
+    if request.method == 'POST' and 'delete_tournament_id' in request.POST:
+        tournament_id = request.POST.get('delete_tournament_id')
+        Tournament.objects.filter(id=tournament_id).delete()
+        return redirect('tournament')
     
     return render(request, 'hockey/tournament.html', {
         'tournaments': tournaments,
@@ -125,16 +138,43 @@ def create_tournament_table(tournament, players):
         )
 
 @transaction.atomic
-def save_tournament_results(tournament_id):
+def save_tournament_results(request, tournament_id):
     tournament = Tournament.objects.get(id=tournament_id)
     tables = tournament.tournamenttable_set.all()
-    
+
     for table in tables:
         for result in table.tournamentresult_set.all():
+            game_results = {}
+
+            # Сохраняем 9 игр: game_2 to game_10
+            for i in range(2, 11):
+                field_name = f'game_{i}_{result.player.id}'
+                score = request.POST.get(field_name, '0:0')
+                game_results[f'game{i}'] = score
+
+            result.game_results = game_results
+
+            # Считаем разницу забитых/пропущенных
+            goal_diff = 0
+            for score in game_results.values():
+                try:
+                    scored, conceded = map(int, score.split(':'))
+                    goal_diff += (scored - conceded)
+                except (ValueError, AttributeError):
+                    continue
+
+            result.total_score = goal_diff
+            result.save()
+
             # Обновляем рейтинг игрока
             profile = UserProfile.objects.get(user=result.player)
-            profile.skill_level = str(int(profile.skill_level) + result.total_score * 10)
+            try:
+                current_rating = int(profile.skill_level)
+            except ValueError:
+                current_rating = 0
+
+            profile.skill_level = str(current_rating + goal_diff * 10)
             profile.save()
-    
+
     tournament.is_completed = True
     tournament.save()

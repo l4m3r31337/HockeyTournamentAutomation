@@ -8,6 +8,8 @@ class UserProfileInline(admin.StackedInline):
     model = UserProfile
     can_delete = False
     fields = (
+        'first_name',
+        'last_name',
         'middle_name', 
         'phone', 
         'age', 

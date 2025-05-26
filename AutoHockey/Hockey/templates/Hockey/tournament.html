@@ -14,16 +14,19 @@ body {
 }
 
 header {
+    height: 85px;
     background-color: #1166c4;
     padding: 10px 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    border-bottom: 3px solid #000;
 }
 
 .navbar {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     width: 100%;
 }
 
@@ -40,13 +43,13 @@ header {
 }
 
 .nav-links li a {
-    color: white;
+    color: #000;
+    font-size: 20px;
     font-weight: bold;
     text-decoration: none;
 }
 
 .profile-icon {
-    margin-left: auto;
     font-size: 24px;
     color: white;
     display: block;
@@ -111,8 +114,8 @@ main h1 {
             <nav>
                 <ul class="nav-links">
                     <li><a href="../">Главная</a></li>
-                    <li><a href="#">Турниры</a></li>
-                    <li><a href="#">Рейтинги</a></li>
+                    <li><a href="{% url 'tournament' %}">Турниры</a></li>
+                    <li><a href="{% url 'rating' %}">Рейтинги</a></li>
                     <li><a href="#">О нас</a></li>
                     <li><a href="#">Контакты</a></li>
                 </ul>
@@ -122,7 +125,7 @@ main h1 {
     </header>
 
     <main>
-    <h1>Турнирные таблицы</h1>
+    <h1>Активные турниры</h1>
     
     {% if players_count >= 12 %}
     <form method="post">
@@ -142,8 +145,20 @@ main h1 {
         {% for table in tournament.tournamenttable_set.all %}
         <form method="post">
             {% csrf_token %}
-            <input type="hidden" name="tournament_id" value="{{ tournament.id }}">
-            
+            <h2>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="edit_tournament_id" value="{{ tournament.id }}">
+                    <input type="text" name="new_name" value="{{ tournament.name }}">
+                    <button type="submit" name="rename_tournament" class="btn btn-sm btn-secondary">💾</button>
+                </form>
+
+                <form method="post" style="display:inline;" onsubmit="return confirm('Удалить турнир {{ tournament.name }}?');">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_tournament_id" value="{{ tournament.id }}">
+                    <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+                </form>
+            </h2>
             <table class="tournament-table">
                 <thead>
                     <tr>
