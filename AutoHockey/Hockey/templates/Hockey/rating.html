@@ -117,6 +117,7 @@ table {
                 <tr>
                     <th>№</th>
                     <th>Имя пользователя</th>
+                    <th>Позиция</th>
                     <th>Рейтинг</th>
                     <th>Возраст</th>
                 </tr>
@@ -126,6 +127,7 @@ table {
                 <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>{{ player.name }}</td>
+                    <td>{{ player.position|default:"-" }}</td>
                     <td>{{ player.rating }}</td>
                     <td>{{ player.age|default:"-" }}</td>
                 </tr>

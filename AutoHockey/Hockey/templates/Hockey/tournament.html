@@ -1,0 +1,204 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Хоккейные турниры</title>
+    <style>
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #fff;
+    color: #000;
+}
+
+header {
+    background-color: #1166c4;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.navbar {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.logo {
+    height: 60px;
+    margin-right: 40px;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 25px;
+    padding: 0;
+}
+
+.nav-links li a {
+    color: white;
+    font-weight: bold;
+    text-decoration: none;
+}
+
+.profile-icon {
+    margin-left: auto;
+    font-size: 24px;
+    color: white;
+    display: block;
+}
+
+main {
+    padding: 40px 20px;
+    text-align: center;
+}
+
+main h1 {
+    font-size: 28px;
+    margin-bottom: 30px;
+}
+
+.image-container img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+
+
+
+.team-k {
+        background-color: #e6f7ff;
+    }
+    .team-c {
+        background-color: #fff2e6;
+    }
+    .team-header {
+        font-weight: bold;
+        text-align: center;
+    }
+    .score-input {
+        width: 50px;
+        text-align: center;
+    }
+    .tournament-table {
+        margin-bottom: 20px;
+        width: 100%;
+        border-collapse: collapse;
+    }
+    .tournament-table th, .tournament-table td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: center;
+    }
+    .tournament-section {
+        margin-bottom: 40px;
+        padding: 20px;
+        border: 1px solid #eee;
+        border-radius: 5px;
+    }
+
+    </style>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <img src="{% static 'Hockey/logo.png' %}" alt="Логотип" class="logo">
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="../">Главная</a></li>
+                    <li><a href="#">Турниры</a></li>
+                    <li><a href="#">Рейтинги</a></li>
+                    <li><a href="#">О нас</a></li>
+                    <li><a href="#">Контакты</a></li>
+                </ul>
+            </nav>
+            <a class="profile-icon" href="{% url 'profile' %}"><img src="{% static 'Hockey/user.svg' %}"></a>
+        </div>
+    </header>
+
+    <main>
+    <h1>Турнирные таблицы</h1>
+    
+    {% if players_count >= 12 %}
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" name="create_tournament" class="btn btn-primary">
+            Создать турнирную таблицу
+        </button>
+    </form>
+    {% else %}
+    <p>Для создания турнира необходимо минимум 12 игроков в рейтинге</p>
+    {% endif %}
+    
+    {% for tournament in tournaments %}
+    <div class="tournament-section">
+        <h2>{{ tournament.name }}</h2>
+        
+        {% for table in tournament.tournamenttable_set.all %}
+        <form method="post">
+            {% csrf_token %}
+            <input type="hidden" name="tournament_id" value="{{ tournament.id }}">
+            
+            <table class="tournament-table">
+                <thead>
+                    <tr>
+                        <th>Участник</th>
+                        <th>Игра 2</th>
+                        <th>Игра 3</th>
+                        <th>Игра 4</th>
+                        <th>Игра 5</th>
+                        <th>Игра 6</th>
+                        <th>Игра 7</th>
+                        <th>Игра 8</th>
+                        <th>Игра 9</th>
+                        <th>Игра 10</th>
+                        <th>Разл.</th>
+                    </tr>
+                    <tr class="team-header">
+                        <td></td>
+                        <td>K</td>
+                        <td>C</td>
+                        <td>C</td>
+                        <td>K</td>
+                        <td>K</td>
+                        <td>K</td>
+                        <td>K</td>
+                        <td>K</td>
+                        <td>K</td>
+                        <td></td>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in table.tournamentresult_set.all %}
+                    <tr class="{% if result.team == 'K' %}team-k{% else %}team-c{% endif %}">
+                        <td>{{ result.player.username }}{% if result.player.userprofile.position == 'Вратарь' %} (В){% endif %}</td>
+                        <td><input type="text" name="game_2_{{ result.player.id }}" value="{{ result.game_results.game2|default:'0:0' }}" class="score-input"></td>
+                        <td><input type="text" name="game_3_{{ result.player.id }}" value="{{ result.game_results.game3|default:'0:0' }}" class="score-input"></td>
+                        <td><input type="text" name="game_4_{{ result.player.id }}" value="{{ result.game_results.game4|default:'0:0' }}" class="score-input"></td>
+                        <td><input type="text" name="game_5_{{ result.player.id }}" value="{{ result.game_results.game5|default:'0:0' }}" class="score-input"></td>
+                        <td><input type="text" name="game_6_{{ result.player.id }}" value="{{ result.game_results.game6|default:'0:0' }}" class="score-input"></td>
+                        <td><input type="text" name="game_7_{{ result.player.id }}" value="{{ result.game_results.game7|default:'0:0' }}" class="score-input"></td>
+                        <td><input type="text" name="game_8_{{ result.player.id }}" value="{{ result.game_results.game8|default:'0:0' }}" class="score-input"></td>
+                        <td><input type="text" name="game_9_{{ result.player.id }}" value="{{ result.game_results.game9|default:'0:0' }}" class="score-input"></td>
+                        <td><input type="text" name="game_10_{{ result.player.id }}" value="{{ result.game_results.game10|default:'0:0' }}" class="score-input"></td>
+                        <td>{{ result.total_score }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            
+            <button type="submit" name="save_results" class="btn btn-success">
+                Внести результаты турнира
+            </button>
+        </form>
+        {% endfor %}
+    </div>
+    {% endfor %}
+</main>
+</body>
+</html>

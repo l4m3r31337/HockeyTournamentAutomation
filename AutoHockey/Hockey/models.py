@@ -19,3 +19,32 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f'Профиль: {self.user.username}'
+    
+
+
+
+class Tournament(models.Model):
+    name = models.CharField(max_length=100)
+    date = models.DateField(auto_now_add=True)
+    is_completed = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.name} ({self.date})"
+
+class TournamentTable(models.Model):
+    tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE)
+    round_number = models.PositiveIntegerField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['round_number']
+
+class TournamentResult(models.Model):
+    table = models.ForeignKey(TournamentTable, on_delete=models.CASCADE)
+    player = models.ForeignKey(User, on_delete=models.CASCADE)
+    game_results = models.JSONField()  # {'game2': '2:2', 'game3': '4:2', ...}
+    total_score = models.IntegerField(default=0)
+    team = models.CharField(max_length=1, choices=[('K', 'Команда K'), ('C', 'Команда C')])
+
+    class Meta:
+        ordering = ['-total_score']
