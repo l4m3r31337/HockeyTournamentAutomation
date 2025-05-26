@@ -29,11 +29,14 @@ class UserProfileForm(forms.ModelForm):
     class Meta:
         model = UserProfile
         fields = [
+            'first_name', 'last_name',
             'middle_name', 'phone', 'age', 'gender',
             'medical_doc', 'medical_consent',
             'identity_doc', 'skill_level', 'position'
         ]
         widgets = {
+            'first_name': forms.TextInput(attrs={'placeholder' : 'Имя'}),
+            'last_name': forms.TextInput(attrs={'placeholder' : 'Фамилия'}),
             'middle_name': forms.TextInput(attrs={'placeholder': 'Отчество'}),
             'phone': forms.TextInput(attrs={'placeholder': 'Телефон'}),
             'age': forms.NumberInput(attrs={'placeholder': 'Возраст'}),
