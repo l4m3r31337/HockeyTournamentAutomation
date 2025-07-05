@@ -152,6 +152,10 @@ label.checkbox input[type="checkbox"] {
                 </ul>
             </nav>
             <a class="profile-icon" href=""><img src="{% static 'Hockey/user.svg' %}"></a>
+            <form action="{% url 'logout' %}" method="post" class="logout-form">
+                {% csrf_token %}
+                <button type="submit" class="logout-button">Выйти</button>
+            </form>
         </div>
     </header>
 

@@ -1,10 +1,3 @@
-# from django.shortcuts import render, redirect
-# from django.contrib.auth import login
-# from django.contrib.auth.decorators import login_required
-# from .forms import UserForm, UserProfileForm
-# from .models import UserProfile
-# from django.contrib.auth.models import User
-
 import random
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
@@ -13,6 +6,8 @@ from .models import UserProfile, Tournament, TournamentTable, TournamentResult
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.contrib.auth.forms import AuthenticationForm
+from django import forms
 
 def index(request):
     return render(request, 'hockey/index.html')
@@ -21,21 +16,59 @@ def registration(request):
     if request.method == 'POST':
         form = SimpleRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.username = f"{form.cleaned_data['last_name']}_{form.cleaned_data['first_name']}".lower()
-            user.save()
-
+            email = form.cleaned_data['email']
+            # Генерируем уникальный username
+            base_username = f"{form.cleaned_data['last_name']}_{form.cleaned_data['first_name']}".lower()
+            username = base_username
+            counter = 1
+            while User.objects.filter(username=username).exists():
+                username = f"{base_username}_{counter}"
+                counter += 1
+                
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=form.cleaned_data['password1'],
+                first_name=form.cleaned_data['first_name'],
+                last_name=form.cleaned_data['last_name']
+            )
+            
             UserProfile.objects.create(
                 user=user,
                 first_name=form.cleaned_data['first_name'],
                 middle_name=form.cleaned_data['middle_name'],
-                last_name=form.cleaned_data['last_name']
+                last_name=form.cleaned_data['last_name'],
+                email=email
             )
+            
             login(request, user)
             return redirect('profile')
     else:
         form = SimpleRegistrationForm()
     return render(request, 'hockey/registration.html', {'form': form})
+
+
+class EmailAuthenticationForm(AuthenticationForm):
+    username = forms.EmailField(label='Email', widget=forms.EmailInput(attrs={
+        'placeholder': 'Email',
+        'autofocus': True
+    }))
+    password = forms.CharField(label='Пароль', widget=forms.PasswordInput(attrs={
+        'placeholder': 'Пароль'
+    }))
+    error_messages = {
+        'invalid_login': "Пожалуйста, введите правильный email и пароль.",
+        'inactive': "Этот аккаунт неактивен.",
+    }
+
+    def clean_username(self):
+        email = self.cleaned_data.get('username')
+        try:
+            user = User.objects.get(email=email)
+            return user.username
+        except User.DoesNotExist:
+            return email
+
 
 @login_required
 def profile(request):
