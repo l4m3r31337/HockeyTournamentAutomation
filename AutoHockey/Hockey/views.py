@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.contrib.auth.forms import AuthenticationForm
 from django import forms
+import json
 
 def index(request):
     return render(request, 'hockey/index.html')
@@ -111,11 +112,13 @@ def tournament(request):
     # Сохраняем результаты турнира
     if request.method == 'POST' and 'save_results' in request.POST:
         tournament_id = request.POST.get('tournament_id')
-        save_tournament_results(tournament_id)
-        return redirect('rating')
+        table_id = request.POST.get('table_id')
+        return save_tournament_results(request, tournament_id, table_id)
     
     # Получаем активные турниры
-    tournaments = Tournament.objects.filter(is_completed=False)
+    tournaments = Tournament.objects.filter(is_completed=False).prefetch_related(
+        'tournamenttable_set__tournamentresult_set__player__userprofile'
+    )
 
     if request.method == 'POST' and 'rename_tournament' in request.POST:
         tournament_id = request.POST.get('edit_tournament_id')
@@ -130,7 +133,8 @@ def tournament(request):
     
     return render(request, 'hockey/tournament.html', {
         'tournaments': tournaments,
-        'players_count': UserProfile.objects.exclude(skill_level='').count()
+        'players_count': UserProfile.objects.exclude(skill_level='').count(),
+        'range_1_9': range(1, 10),
     })
 
 def create_tournament_table(tournament, players):
@@ -146,68 +150,65 @@ def create_tournament_table(tournament, players):
         goalkeepers.append(random_player)
         field_players.remove(random_player)
     
-    # Создаем команды
-    team_k = [goalkeepers[0]] + random.sample(field_players[:len(field_players)//2], 5)
-    team_c = [goalkeepers[1]] + random.sample(field_players[len(field_players)//2:], 5)
+    # Создаем команды (синие и красные)
+    blue_team = [goalkeepers[0]] + random.sample(field_players[:len(field_players)//2], 5)
+    red_team = [goalkeepers[1]] + random.sample(field_players[len(field_players)//2:], 5)
     
     # Создаем таблицу турнира
-    table = TournamentTable.objects.create(tournament=tournament, round_number=1)
+    table = TournamentTable.objects.create(
+        tournament=tournament,
+        round_number=1,
+        team_blue_indices=json.dumps([i for i, p in enumerate(blue_team + red_team) if p in blue_team])
+    )
     
     # Создаем записи результатов для каждого игрока
-    for player in team_k:
+    for player in blue_team:
         TournamentResult.objects.create(
             table=table,
             player=player.user,
-            game_results={},
-            team='K'
+            game_results={f"game{i}": "0:0" for i in range(1, 10)},
+            total_score=0,
+            team='C'  # Синяя команда
         )
     
-    for player in team_c:
+    for player in red_team:
         TournamentResult.objects.create(
             table=table,
             player=player.user,
-            game_results={},
-            team='C'
+            game_results={f"game{i}": "0:0" for i in range(1, 10)},
+            total_score=0,
+            team='K'  # Красная команда
         )
 
 @transaction.atomic
-def save_tournament_results(request, tournament_id):
+def save_tournament_results(request, tournament_id, table_id):
     tournament = Tournament.objects.get(id=tournament_id)
-    tables = tournament.tournamenttable_set.all()
-
-    for table in tables:
-        for result in table.tournamentresult_set.all():
-            game_results = {}
-
-            # Сохраняем 9 игр: game_2 to game_10
-            for i in range(2, 11):
-                field_name = f'game_{i}_{result.player.id}'
-                score = request.POST.get(field_name, '0:0')
-                game_results[f'game{i}'] = score
-
-            result.game_results = game_results
-
-            # Считаем разницу забитых/пропущенных
-            goal_diff = 0
-            for score in game_results.values():
-                try:
-                    scored, conceded = map(int, score.split(':'))
-                    goal_diff += (scored - conceded)
-                except (ValueError, AttributeError):
-                    continue
-
-            result.total_score = goal_diff
-            result.save()
-
-            # Обновляем рейтинг игрока
-            profile = UserProfile.objects.get(user=result.player)
-            try:
-                current_rating = int(profile.skill_level)
-            except ValueError:
-                current_rating = 0
-
-            profile.skill_level = str(current_rating + goal_diff * 10)
-            profile.save()
-
-    tournament.is_completed = True
-    tournament.save()
+    table = TournamentTable.objects.get(id=table_id)
+    
+    # Получаем все результаты для таблицы
+    results = table.tournamentresult_set.all()
+    
+    # Собираем результаты игр из формы
+    game_results = {}
+    for i in range(1, 10):
+        red_score = request.POST.get(f'game_{i}_red', '0')
+        blue_score = request.POST.get(f'game_{i}_blue', '0')
+        game_results[f'game{i}'] = f"{red_score}:{blue_score}"
+    
+    # Обновляем результаты для каждого игрока
+    for result in results:
+        result.game_results = game_results
+        
+        # Вычисляем общий счет
+        total_score = 0
+        for game, score in game_results.items():
+            red, blue = map(int, score.split(':'))
+            if result.team == 'K':  # Красная команда
+                total_score += (red - blue)
+            else:  # Синяя команда
+                total_score += (blue - red)
+        
+        result.total_score = total_score
+        result.save()
+    
+    return redirect('tournament')
