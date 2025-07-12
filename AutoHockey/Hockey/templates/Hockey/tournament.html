@@ -1,4 +1,6 @@
 {% load static %}
+{% load tournament_filters %}
+{% load tournament_tags %}
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -186,13 +188,15 @@ main h1 {
                 </thead>
                 <tbody>
                     {% for result in table.tournamentresult_set.all %}
-                    <tr class="{% if forloop.counter0 in table.team_blue_indices %}team-blue{% else %}team-red{% endif %}">
+                    <tr class="{% if forloop.counter0 in table.get_team_blue_indices %}team-blue{% else %}team-red{% endif %}">
                         <td>{{ forloop.counter }}</td>
                         <td>{{ result.player.username }}{% if result.player.userprofile.position == 'Вратарь' %} (В){% endif %}</td>
                         {% for i in range_1_9 %}
-                        <td class="game-result" data-game="{{ i }}" data-team="{% if forloop.counter0 in table.team_blue_indices %}blue{% else %}red{% endif %}">
-                            {{ result.game_results|get_item:"game"|add:i|default:"0:0" }}
-                        </td>
+                            {% with game_key="game"|add:i %}
+                            <td class="game-result" data-game="{{ i }}" data-team="{% if forloop.counter0 in table.get_team_blue_indices %}blue{% else %}red{% endif %}">
+                                {{ result.game_results|get_item:game_key|default:"0:0" }}
+                            </td>
+                            {% endwith %}
                         {% endfor %}
                         <td class="total-score">{{ result.total_score }}</td>
                     </tr>
