@@ -75,11 +75,10 @@ main h1 {
 
 
 
-
-    .team-blue {
+        .team-blue td.game-result {
             background-color: #d4e6f7;
         }
-        .team-red {
+        .team-red td.game-result {
             background-color: #f7d4d4;
         }
         .red-score {
@@ -109,6 +108,12 @@ main h1 {
         }
         .tournament-table th {
             background-color: #f2f2f2;
+        }
+        /* Убираем фон у ячеек с номерами, именами и разницей */
+        .tournament-table tbody td:first-child,
+        .tournament-table tbody td:nth-child(2),
+        .tournament-table tbody td.total-score {
+            background-color: transparent !important;
         }
 
     </style>
@@ -172,7 +177,7 @@ main h1 {
                     <tr>
                         <th>№</th>
                         <th>Участник</th>
-                        {% for i in range_1_9 %}
+                        {% for i in range_1_10 %}
                         <th>Игра {{ i }}</th>
                         {% endfor %}
                         <th>Разность</th>
@@ -180,7 +185,7 @@ main h1 {
                     <tr class="score-input-row">
                         <td></td>
                         <td></td>
-                        {% for i in range_1_9 %}
+                        {% for i in range_1_10 %}
                         <td>
                             <input type="number" class="red-score" min="0" step="1" name="game_{{ i }}_red" value="0">
                             <span> : </span>
@@ -195,7 +200,7 @@ main h1 {
                     <tr class="{% if forloop.counter0 in table.get_team_blue_indices %}team-blue{% else %}team-red{% endif %}">
                         <td>{{ forloop.counter }}</td>
                         <td>{{ result.player.username }}{% if result.player.userprofile.position == 'Вратарь' %} (В){% endif %}</td>
-                        {% for i in range_1_9 %}
+                        {% for i in range_1_10 %}
                             {% with game_key="game"|add:i %}
                             <td class="game-result" data-game="{{ i }}" data-team="{% if forloop.counter0 in table.get_team_blue_indices %}blue{% else %}red{% endif %}">
                                 {{ result.game_results|get_item:game_key|default:"0:0" }}

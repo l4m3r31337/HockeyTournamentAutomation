@@ -134,7 +134,7 @@ def tournament(request):
     return render(request, 'hockey/tournament.html', {
         'tournaments': tournaments,
         'players_count': UserProfile.objects.exclude(skill_level='').count(),
-        'range_1_9': range(1, 10),
+        'range_1_10': range(1, 11),
     })
 
 def create_tournament_table(tournament, players):
@@ -175,7 +175,7 @@ def create_tournament_table(tournament, players):
         TournamentResult.objects.create(
             table=table,
             player=player.user,
-            game_results={f"game{i}": "0:0" for i in range(1, 10)},
+            game_results={f"game{i}": "0:0" for i in range(1, 11)},
             total_score=0,
             team='K'  # Красная команда
         )
@@ -190,7 +190,7 @@ def save_tournament_results(request, tournament_id, table_id):
     
     # Собираем результаты игр из формы
     game_results = {}
-    for i in range(1, 10):
+    for i in range(1, 11):
         red_score = request.POST.get(f'game_{i}_red', '0')
         blue_score = request.POST.get(f'game_{i}_blue', '0')
         game_results[f'game{i}'] = f"{red_score}:{blue_score}"
