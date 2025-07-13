@@ -83,12 +83,16 @@ main h1 {
             background-color: #f7d4d4;
         }
         .red-score {
-            color: red;
+            background-color: #f7d4d4;
+            color: black;
             width: 30px;
+            border: 1px solid #ff0000;
         }
         .blue-score {
-            color: blue;
+            background-color: #d4e6f7;
+            color: black;
             width: 30px;
+            border: 1px solid #0000ff;
         }
         .score-input-row input {
             text-align: center;
@@ -178,9 +182,9 @@ main h1 {
                         <td></td>
                         {% for i in range_1_9 %}
                         <td>
-                            <input type="number" class="red-score" min="0" step="1" name="game_{{ i }}_red">
+                            <input type="number" class="red-score" min="0" step="1" name="game_{{ i }}_red" value="0">
                             <span> : </span>
-                            <input type="number" class="blue-score" min="0" step="1" name="game_{{ i }}_blue">
+                            <input type="number" class="blue-score" min="0" step="1" name="game_{{ i }}_blue" value="0">
                         </td>
                         {% endfor %}
                         <td></td>
@@ -215,52 +219,44 @@ main h1 {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Обработка ввода счета
-    document.querySelectorAll('.score-input-row input').forEach(input => {
+    const inputRow = document.querySelector('.score-input-row');
+
+    inputRow.querySelectorAll('input').forEach(input => {
         input.addEventListener('input', function() {
-            const gameNum = this.closest('td').cellIndex - 1; // Игра 1 в столбце 2
-            const isRed = this.classList.contains('red-score');
-            const score = this.value;
-            
-            // Находим соответствующее поле для противоположной команды
-            const oppositeInput = isRed 
-                ? this.nextElementSibling.nextElementSibling.nextElementSibling 
-                : this.previousElementSibling.previousElementSibling.previousElementSibling;
-            
-            // Обновляем все ячейки с результатами для этой игры
+            const td = this.closest('td');
+            const redInput = td.querySelector('.red-score');
+            const blueInput = td.querySelector('.blue-score');
+            const redScore = parseInt(redInput.value) || 0;
+            const blueScore = parseInt(blueInput.value) || 0;
+
+            // Определим номер игры по индексу ячейки
+            const gameNum = td.cellIndex - 2 + 1; // +1 потому что data-game начинается с 1
+
             document.querySelectorAll(`.game-result[data-game="${gameNum}"]`).forEach(cell => {
-                const parts = cell.textContent.split(':') || ['0', '0'];
-                if (cell.dataset.team === 'red') {
-                    parts[0] = score || '0';
-                    if (oppositeInput.value) parts[1] = oppositeInput.value;
+                const team = cell.dataset.team;
+                if (team === 'red') {
+                    cell.textContent = `${redScore}:${blueScore}`;
                 } else {
-                    parts[1] = score || '0';
-                    if (oppositeInput.value) parts[0] = oppositeInput.value;
+                    cell.textContent = `${blueScore}:${redScore}`;
                 }
-                cell.textContent = parts.join(':');
-                
-                // Пересчитываем разность
+
                 updateTotalScore(cell.closest('tr'));
             });
         });
     });
-    
+
     function updateTotalScore(row) {
         let total = 0;
         row.querySelectorAll('.game-result').forEach(cell => {
-            const [red, blue] = cell.textContent.split(':').map(Number);
-            const isBlueTeam = cell.classList.contains('team-blue');
-            
-            if (isBlueTeam) {
-                total += (blue - red);
-            } else {
-                total += (red - blue);
-            }
+            const team = cell.dataset.team;
+            const [a, b] = cell.textContent.split(':').map(Number);
+            total += (team === 'red') ? (a - b) : (b - a);
         });
         row.querySelector('.total-score').textContent = total;
     }
 });
 </script>
+
 
 </body>
 </html>
