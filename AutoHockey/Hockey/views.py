@@ -8,6 +8,9 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.contrib.auth.forms import AuthenticationForm
 from django import forms
+import json
+from itertools import combinations
+from collections import defaultdict
 
 def index(request):
     return render(request, 'hockey/index.html')
@@ -97,25 +100,148 @@ def rating(request):
     return render(request, 'hockey/rating.html', {'players': players_data})
 
 
+def generate_balanced_schedule(players):
+    """
+    players: список из 12 игроков. Первые два - вратари.
+    Возвращает список из 10 игр: {'blue': [...], 'red': [...]}
+    """
+    num_players = len(players)
+    num_games = 10
+    assert num_players == 12, "Пока поддерживается только 12 игроков"
+
+    # Инициализация счётчиков партнёрств и соперничеств
+    teammate_counts = defaultdict(lambda: defaultdict(int))
+    opponent_counts = defaultdict(lambda: defaultdict(int))
+
+    schedule = []
+
+    player_indices = list(range(num_players))
+    gk1, gk2 = 0, 1  # индексы вратарей
+
+    for game_num in range(num_games):
+        # Вратари по умолчанию
+        blue_team = [gk1]
+        red_team = [gk2]
+
+        # Кандидаты на остальные места
+        fielders = [i for i in player_indices if i not in (gk1, gk2)]
+
+        # Случайная перестановка для разнообразия
+        random.shuffle(fielders)
+
+        best_score = None
+        best_split = None
+
+        # Генерируем все возможные комбинации для разделения 10 игроков на 5 + 5
+        from itertools import combinations
+
+        for blue_f in combinations(fielders, 5):
+            red_f = [i for i in fielders if i not in blue_f]
+
+            curr_blue = blue_team + list(blue_f)
+            curr_red = red_team + red_f
+
+            # Оценка "разбалансированности"
+            team_score = 0
+
+            # Партнёры
+            for team in [curr_blue, curr_red]:
+                for i in team:
+                    for j in team:
+                        if i != j:
+                            team_score += teammate_counts[i][j]
+
+            # Противники
+            for i in curr_blue:
+                for j in curr_red:
+                    team_score += opponent_counts[i][j]
+
+            # Ищем вариант с минимальным количеством повторов
+            if best_score is None or team_score < best_score:
+                best_score = team_score
+                best_split = {'blue': curr_blue, 'red': curr_red}
+
+        # Обновляем счётчики
+        blue = best_split['blue']
+        red = best_split['red']
+
+        for team in [blue, red]:
+            for i in team:
+                for j in team:
+                    if i != j:
+                        teammate_counts[i][j] += 1
+
+        for i in blue:
+            for j in red:
+                opponent_counts[i][j] += 1
+                opponent_counts[j][i] += 1
+
+        schedule.append(best_split)
+
+    return schedule
+
+
 @login_required
 def tournament(request):
-    # Получаем топ игроков из рейтинга
     players = UserProfile.objects.exclude(skill_level='').order_by('-skill_level')[:12]
     
-    # Создаем турнирную таблицу
     if request.method == 'POST' and 'create_tournament' in request.POST:
         tournament = Tournament.objects.create(name=f"Турнир {Tournament.objects.count() + 1}")
-        create_tournament_table(tournament, players)
+        
+        # Создаем команды с балансировкой по вратарям
+        goalkeepers = [p for p in players if p.position == 'Вратарь']
+        field_players = [p for p in players if p.position != 'Вратарь']
+        
+        # Если вратарей меньше 2, назначаем случайных полевых игроков
+        while len(goalkeepers) < 2:
+            random_player = random.choice(field_players)
+            random_player.position = 'Вратарь'
+            random_player.save()
+            goalkeepers.append(random_player)
+            field_players.remove(random_player)
+        
+        # Определяем двух вратарей строго: gk1 и gk2
+        random.shuffle(goalkeepers)
+        gk1, gk2 = goalkeepers[0], goalkeepers[1]
+
+        # Перемешиваем полевых
+        random.shuffle(field_players)
+
+        # Собираем итоговый список: сначала gk1, затем gk2, потом остальные
+        all_players = [gk1, gk2] + field_players
+
+        
+        # Генерируем расписание с ротацией
+        schedule = generate_balanced_schedule(all_players)
+        
+        # Создаем таблицу турнира
+        table = TournamentTable.objects.create(
+            tournament=tournament,
+            round_number=1,
+            schedule=json.dumps(schedule)
+        )
+        
+        # Создаем записи результатов для каждого игрока
+        for player in all_players:
+            TournamentResult.objects.create(
+                table=table,
+                player=player.user,
+                game_results={f"game{i}": "0:0" for i in range(1, 11)},
+                total_score=0
+            )
+        
         return redirect('tournament')
     
     # Сохраняем результаты турнира
     if request.method == 'POST' and 'save_results' in request.POST:
         tournament_id = request.POST.get('tournament_id')
-        save_tournament_results(tournament_id)
-        return redirect('rating')
+        table_id = request.POST.get('table_id')
+        return save_tournament_results(request, tournament_id, table_id)
     
     # Получаем активные турниры
-    tournaments = Tournament.objects.filter(is_completed=False)
+    tournaments = Tournament.objects.filter(is_completed=False).prefetch_related(
+        'tournamenttable_set__tournamentresult_set__player__userprofile'
+    )
 
     if request.method == 'POST' and 'rename_tournament' in request.POST:
         tournament_id = request.POST.get('edit_tournament_id')
@@ -130,7 +256,8 @@ def tournament(request):
     
     return render(request, 'hockey/tournament.html', {
         'tournaments': tournaments,
-        'players_count': UserProfile.objects.exclude(skill_level='').count()
+        'players_count': UserProfile.objects.exclude(skill_level='').count(),
+        'range_1_10': range(1, 11),
     })
 
 def create_tournament_table(tournament, players):
@@ -146,68 +273,69 @@ def create_tournament_table(tournament, players):
         goalkeepers.append(random_player)
         field_players.remove(random_player)
     
-    # Создаем команды
-    team_k = [goalkeepers[0]] + random.sample(field_players[:len(field_players)//2], 5)
-    team_c = [goalkeepers[1]] + random.sample(field_players[len(field_players)//2:], 5)
+    # Создаем список всех игроков
+    all_players = goalkeepers + field_players
+    random.shuffle(all_players)
+    
+    # Генерируем расписание с ротацией
+    schedule = generate_balanced_schedule(all_players)
+
     
     # Создаем таблицу турнира
-    table = TournamentTable.objects.create(tournament=tournament, round_number=1)
+    table = TournamentTable.objects.create(
+        tournament=tournament,
+        round_number=1,
+        team_blue_indices=json.dumps([i for i, p in enumerate(all_players) if p in blue_team]),
+        schedule=schedule  # Сохраняем расписание
+    )
     
     # Создаем записи результатов для каждого игрока
-    for player in team_k:
+    for player in all_players:
         TournamentResult.objects.create(
             table=table,
             player=player.user,
-            game_results={},
-            team='K'
-        )
-    
-    for player in team_c:
-        TournamentResult.objects.create(
-            table=table,
-            player=player.user,
-            game_results={},
-            team='C'
+            game_results={f"game{i}": "0:0" for i in range(1, 11)},
+            total_score=0,
+            team='C' if player in blue_team else 'K'
         )
 
 @transaction.atomic
-def save_tournament_results(request, tournament_id):
+def save_tournament_results(request, tournament_id, table_id):
     tournament = Tournament.objects.get(id=tournament_id)
-    tables = tournament.tournamenttable_set.all()
+    table = TournamentTable.objects.get(id=table_id)
+    results = list(table.tournamentresult_set.select_related('player').all())
 
-    for table in tables:
-        for result in table.tournamentresult_set.all():
-            game_results = {}
+    # Собираем результаты игр из формы
+    game_scores = {}
+    for i in range(1, 11):
+        red_score = int(request.POST.get(f'game_{i}_red', 0))
+        blue_score = int(request.POST.get(f'game_{i}_blue', 0))
+        game_scores[f'game{i}'] = (red_score, blue_score)
 
-            # Сохраняем 9 игр: game_2 to game_10
-            for i in range(2, 11):
-                field_name = f'game_{i}_{result.player.id}'
-                score = request.POST.get(field_name, '0:0')
-                game_results[f'game{i}'] = score
+    # Обновляем данные каждого игрока
+    for index, result in enumerate(results):
+        total_score = 0
+        game_result_data = {}
 
-            result.game_results = game_results
+        for i in range(1, 11):
+            game_key = f'game{i}'
+            red_score, blue_score = game_scores[game_key]
 
-            # Считаем разницу забитых/пропущенных
-            goal_diff = 0
-            for score in game_results.values():
-                try:
-                    scored, conceded = map(int, score.split(':'))
-                    goal_diff += (scored - conceded)
-                except (ValueError, AttributeError):
-                    continue
+            # Получаем команду игрока в этой игре (blue/red)
+            team = table.get_team_for_player_in_game(index, i)
 
-            result.total_score = goal_diff
-            result.save()
+            # Сохраняем строку вида "2:0" или "0:3" для каждого игрока
+            if team == 'blue':
+                game_result_data[game_key] = f"{blue_score}:{red_score}"
+                total_score += blue_score - red_score
+            else:
+                game_result_data[game_key] = f"{red_score}:{blue_score}"
+                total_score += red_score - blue_score
 
-            # Обновляем рейтинг игрока
-            profile = UserProfile.objects.get(user=result.player)
-            try:
-                current_rating = int(profile.skill_level)
-            except ValueError:
-                current_rating = 0
+        # Сохраняем результат
+        result.game_results = game_result_data
+        result.total_score = total_score
+        result.save()
 
-            profile.skill_level = str(current_rating + goal_diff * 10)
-            profile.save()
+    return redirect('tournament')
 
-    tournament.is_completed = True
-    tournament.save()
