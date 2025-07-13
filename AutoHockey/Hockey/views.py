@@ -303,31 +303,39 @@ def create_tournament_table(tournament, players):
 def save_tournament_results(request, tournament_id, table_id):
     tournament = Tournament.objects.get(id=tournament_id)
     table = TournamentTable.objects.get(id=table_id)
-    
-    # Получаем все результаты для таблицы
-    results = table.tournamentresult_set.all()
-    
+    results = list(table.tournamentresult_set.select_related('player').all())
+
     # Собираем результаты игр из формы
-    game_results = {}
+    game_scores = {}
     for i in range(1, 11):
-        red_score = request.POST.get(f'game_{i}_red', '0')
-        blue_score = request.POST.get(f'game_{i}_blue', '0')
-        game_results[f'game{i}'] = f"{red_score}:{blue_score}"
-    
-    # Обновляем результаты для каждого игрока
-    for result in results:
-        result.game_results = game_results
-        
-        # Вычисляем общий счет
+        red_score = int(request.POST.get(f'game_{i}_red', 0))
+        blue_score = int(request.POST.get(f'game_{i}_blue', 0))
+        game_scores[f'game{i}'] = (red_score, blue_score)
+
+    # Обновляем данные каждого игрока
+    for index, result in enumerate(results):
         total_score = 0
-        for game, score in game_results.items():
-            red, blue = map(int, score.split(':'))
-            if result.team == 'K':  # Красная команда
-                total_score += (red - blue)
-            else:  # Синяя команда
-                total_score += (blue - red)
-        
+        game_result_data = {}
+
+        for i in range(1, 11):
+            game_key = f'game{i}'
+            red_score, blue_score = game_scores[game_key]
+
+            # Получаем команду игрока в этой игре (blue/red)
+            team = table.get_team_for_player_in_game(index, i)
+
+            # Сохраняем строку вида "2:0" или "0:3" для каждого игрока
+            if team == 'blue':
+                game_result_data[game_key] = f"{blue_score}:{red_score}"
+                total_score += blue_score - red_score
+            else:
+                game_result_data[game_key] = f"{red_score}:{blue_score}"
+                total_score += red_score - blue_score
+
+        # Сохраняем результат
+        result.game_results = game_result_data
         result.total_score = total_score
         result.save()
-    
+
     return redirect('tournament')
+

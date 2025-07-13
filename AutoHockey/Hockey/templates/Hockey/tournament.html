@@ -75,12 +75,7 @@ main h1 {
 
 
 
-        /* .team-blue td.game-result {
-            background-color: #d4e6f7;
-        }
-        .team-red td.game-result {
-            background-color: #f7d4d4;
-        } */
+
         .team-blue {
             background-color: #d4e6f7;
         }
@@ -239,8 +234,8 @@ main h1 {
                 
                 const redInput = gameCell.querySelector('.red-score');
                 const blueInput = gameCell.querySelector('.blue-score');
-                const redScore = redInput.value || '0';
-                const blueScore = blueInput.value || '0';
+                const redScore = parseInt(redInput.value) || 0;
+                const blueScore = parseInt(blueInput.value) || 0;
                 
                 // Обновляем все ячейки с результатами для этой игры
                 document.querySelectorAll(`.game-result[data-game="${gameNum}"]`).forEach(cell => {
@@ -254,11 +249,23 @@ main h1 {
         function updateTotalScore(row) {
             let total = 0;
             row.querySelectorAll('.game-result').forEach(cell => {
-                const [a, b] = cell.textContent.split(':').map(Number);
-                total += cell.dataset.team === 'blue' ? (a - b) : (b - a);
+                const [goalsFor, goalsAgainst] = cell.textContent.split(':').map(Number);
+                const team = cell.dataset.team;
+                // Для синей команды разность = забитые - пропущенные
+                // Для красной команды разность = забитые - пропущенные (но они играют за красных)
+                if (team === 'blue') {
+                    total += (goalsFor - goalsAgainst);
+                } else if (team === 'red') {
+                    total += (goalsFor - goalsAgainst);
+                }
             });
             row.querySelector('.total-score').textContent = total;
         }
+        
+        // Инициализируем разности при загрузке страницы
+        document.querySelectorAll('tbody tr').forEach(row => {
+            updateTotalScore(row);
+        });
     });
 </script>
 
