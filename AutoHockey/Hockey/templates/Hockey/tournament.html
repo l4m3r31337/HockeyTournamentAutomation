@@ -75,10 +75,16 @@ main h1 {
 
 
 
-        .team-blue td.game-result {
+        /* .team-blue td.game-result {
             background-color: #d4e6f7;
         }
         .team-red td.game-result {
+            background-color: #f7d4d4;
+        } */
+        .team-blue {
+            background-color: #d4e6f7;
+        }
+        .team-red {
             background-color: #f7d4d4;
         }
         .red-score {
@@ -203,9 +209,8 @@ main h1 {
                         {% for i in range_1_10 %}
                             {% with game_key="game"|add:i %}
                                 {% get_player_team table forloop.parentloop.counter0 i as game_team %}
-                                <td class="game-result {% if game_team == 'blue' %}team-blue{% else %}team-red{% endif %}" 
-                                    data-game="{{ i }}" 
-                                    data-team="{{ game_team }}">
+                                <td class="game-result {% if game_team == 'blue' %}team-blue{% elif game_team == 'red' %}team-red{% endif %}"
+                                    data-game="{{ i }}" data-team="{{ game_team }}">
                                     {{ result.game_results|get_item:game_key|default:"0:0" }}
                                 </td>
                             {% endwith %}
