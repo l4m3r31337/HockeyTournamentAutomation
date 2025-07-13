@@ -197,14 +197,17 @@ main h1 {
                 </thead>
                 <tbody>
                     {% for result in table.tournamentresult_set.all %}
-                    <tr class="{% if forloop.counter0 in table.get_team_blue_indices %}team-blue{% else %}team-red{% endif %}">
+                    <tr>
                         <td>{{ forloop.counter }}</td>
                         <td>{{ result.player.username }}{% if result.player.userprofile.position == 'Вратарь' %} (В){% endif %}</td>
                         {% for i in range_1_10 %}
                             {% with game_key="game"|add:i %}
-                            <td class="game-result" data-game="{{ i }}" data-team="{% if forloop.counter0 in table.get_team_blue_indices %}blue{% else %}red{% endif %}">
-                                {{ result.game_results|get_item:game_key|default:"0:0" }}
-                            </td>
+                                {% get_player_team table forloop.parentloop.counter0 i as game_team %}
+                                <td class="game-result {% if game_team == 'blue' %}team-blue{% else %}team-red{% endif %}" 
+                                    data-game="{{ i }}" 
+                                    data-team="{{ game_team }}">
+                                    {{ result.game_results|get_item:game_key|default:"0:0" }}
+                                </td>
                             {% endwith %}
                         {% endfor %}
                         <td class="total-score">{{ result.total_score }}</td>
@@ -223,43 +226,35 @@ main h1 {
 </main>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const inputRow = document.querySelector('.score-input-row');
-
-    inputRow.querySelectorAll('input').forEach(input => {
-        input.addEventListener('input', function() {
-            const td = this.closest('td');
-            const redInput = td.querySelector('.red-score');
-            const blueInput = td.querySelector('.blue-score');
-            const redScore = parseInt(redInput.value) || 0;
-            const blueScore = parseInt(blueInput.value) || 0;
-
-            // Определим номер игры по индексу ячейки
-            const gameNum = td.cellIndex - 2 + 1; // +1 потому что data-game начинается с 1
-
-            document.querySelectorAll(`.game-result[data-game="${gameNum}"]`).forEach(cell => {
-                const team = cell.dataset.team;
-                if (team === 'red') {
-                    cell.textContent = `${redScore}:${blueScore}`;
-                } else {
-                    cell.textContent = `${blueScore}:${redScore}`;
-                }
-
-                updateTotalScore(cell.closest('tr'));
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.score-input-row input').forEach(input => {
+            input.addEventListener('input', function() {
+                const gameCell = this.closest('td');
+                const gameNum = gameCell.cellIndex - 1; // Номер игры (1-10)
+                
+                const redInput = gameCell.querySelector('.red-score');
+                const blueInput = gameCell.querySelector('.blue-score');
+                const redScore = redInput.value || '0';
+                const blueScore = blueInput.value || '0';
+                
+                // Обновляем все ячейки с результатами для этой игры
+                document.querySelectorAll(`.game-result[data-game="${gameNum}"]`).forEach(cell => {
+                    const team = cell.dataset.team;
+                    cell.textContent = team === 'blue' ? `${blueScore}:${redScore}` : `${redScore}:${blueScore}`;
+                    updateTotalScore(cell.closest('tr'));
+                });
             });
         });
+        
+        function updateTotalScore(row) {
+            let total = 0;
+            row.querySelectorAll('.game-result').forEach(cell => {
+                const [a, b] = cell.textContent.split(':').map(Number);
+                total += cell.dataset.team === 'blue' ? (a - b) : (b - a);
+            });
+            row.querySelector('.total-score').textContent = total;
+        }
     });
-
-    function updateTotalScore(row) {
-        let total = 0;
-        row.querySelectorAll('.game-result').forEach(cell => {
-            const team = cell.dataset.team;
-            const [a, b] = cell.textContent.split(':').map(Number);
-            total += (team === 'red') ? (a - b) : (b - a);
-        });
-        row.querySelector('.total-score').textContent = total;
-    }
-});
 </script>
 
 

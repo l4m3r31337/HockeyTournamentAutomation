@@ -41,12 +41,27 @@ class TournamentTable(models.Model):
     round_number = models.PositiveIntegerField()
     created_at = models.DateTimeField(auto_now_add=True)
     team_blue_indices = models.TextField(default='[]')  # Индексы игроков в синей команде
-
+    schedule = models.JSONField(default=list)  # Добавляем новое поле для расписания
+    
     class Meta:
         ordering = ['round_number']
 
     def get_team_blue_indices(self):
         return json.loads(self.team_blue_indices)
+    
+    def get_team_for_player_in_game(self, player_index, game_num):
+        if not hasattr(self, '_schedule_cache'):
+            self._schedule_cache = json.loads(self.schedule) if isinstance(self.schedule, str) else self.schedule
+        
+        # Проверяем, что game_num в допустимых пределах
+        if game_num < 1 or game_num > len(self._schedule_cache):
+            return 'red'  # Возвращаем значение по умолчанию
+            
+        game_schedule = self._schedule_cache[game_num - 1]
+        if player_index in game_schedule.get('blue', []):
+            return 'blue'
+        return 'red'
+
 
 class TournamentResult(models.Model):
     table = models.ForeignKey(TournamentTable, on_delete=models.CASCADE)

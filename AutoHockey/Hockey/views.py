@@ -9,6 +9,8 @@ from django.db import transaction
 from django.contrib.auth.forms import AuthenticationForm
 from django import forms
 import json
+from itertools import combinations
+
 
 def index(request):
     return render(request, 'hockey/index.html')
@@ -98,15 +100,74 @@ def rating(request):
     return render(request, 'hockey/rating.html', {'players': players_data})
 
 
+def generate_round_robin_schedule(players):
+    """Генерация расписания с ротацией игроков между командами"""
+    num_players = len(players)
+    num_games = 10  # Количество игр в турнире
+    schedule = []
+    
+    for game_num in range(1, num_games + 1):
+        # Разделяем игроков на две команды с ротацией
+        if game_num % 2 == 0:
+            blue_team = players[:num_players//2]
+            red_team = players[num_players//2:]
+        else:
+            # Чередуем разделение для ротации
+            blue_team = players[::2] + players[1::2][:num_players//2 - len(players[::2])]
+            red_team = [p for p in players if p not in blue_team]
+        
+        # Сохраняем индексы игроков для каждой команды
+        team_indices = {
+            'blue': [i for i, p in enumerate(players) if p in blue_team],
+            'red': [i for i, p in enumerate(players) if p in red_team]
+        }
+        schedule.append(team_indices)
+    
+    return schedule
+
+
 @login_required
 def tournament(request):
-    # Получаем топ игроков из рейтинга
     players = UserProfile.objects.exclude(skill_level='').order_by('-skill_level')[:12]
     
-    # Создаем турнирную таблицу
     if request.method == 'POST' and 'create_tournament' in request.POST:
         tournament = Tournament.objects.create(name=f"Турнир {Tournament.objects.count() + 1}")
-        create_tournament_table(tournament, players)
+        
+        # Создаем команды с балансировкой по вратарям
+        goalkeepers = [p for p in players if p.position == 'Вратарь']
+        field_players = [p for p in players if p.position != 'Вратарь']
+        
+        # Если вратарей меньше 2, назначаем случайных полевых игроков
+        while len(goalkeepers) < 2:
+            random_player = random.choice(field_players)
+            random_player.position = 'Вратарь'
+            random_player.save()
+            goalkeepers.append(random_player)
+            field_players.remove(random_player)
+        
+        # Создаем список всех игроков
+        all_players = goalkeepers + field_players
+        random.shuffle(all_players)
+        
+        # Генерируем расписание с ротацией
+        schedule = generate_round_robin_schedule(all_players)
+        
+        # Создаем таблицу турнира
+        table = TournamentTable.objects.create(
+            tournament=tournament,
+            round_number=1,
+            schedule=json.dumps(schedule)
+        )
+        
+        # Создаем записи результатов для каждого игрока
+        for player in all_players:
+            TournamentResult.objects.create(
+                table=table,
+                player=player.user,
+                game_results={f"game{i}": "0:0" for i in range(1, 11)},
+                total_score=0
+            )
+        
         return redirect('tournament')
     
     # Сохраняем результаты турнира
@@ -150,34 +211,29 @@ def create_tournament_table(tournament, players):
         goalkeepers.append(random_player)
         field_players.remove(random_player)
     
-    # Создаем команды (синие и красные)
-    blue_team = [goalkeepers[0]] + random.sample(field_players[:len(field_players)//2], 5)
-    red_team = [goalkeepers[1]] + random.sample(field_players[len(field_players)//2:], 5)
+    # Создаем список всех игроков
+    all_players = goalkeepers + field_players
+    random.shuffle(all_players)
+    
+    # Генерируем расписание с ротацией
+    schedule = generate_round_robin_schedule(all_players)
     
     # Создаем таблицу турнира
     table = TournamentTable.objects.create(
         tournament=tournament,
         round_number=1,
-        team_blue_indices=json.dumps([i for i, p in enumerate(blue_team + red_team) if p in blue_team])
+        team_blue_indices=json.dumps([i for i, p in enumerate(all_players) if p in blue_team]),
+        schedule=schedule  # Сохраняем расписание
     )
     
     # Создаем записи результатов для каждого игрока
-    for player in blue_team:
-        TournamentResult.objects.create(
-            table=table,
-            player=player.user,
-            game_results={f"game{i}": "0:0" for i in range(1, 10)},
-            total_score=0,
-            team='C'  # Синяя команда
-        )
-    
-    for player in red_team:
+    for player in all_players:
         TournamentResult.objects.create(
             table=table,
             player=player.user,
             game_results={f"game{i}": "0:0" for i in range(1, 11)},
             total_score=0,
-            team='K'  # Красная команда
+            team='C' if player in blue_team else 'K'
         )
 
 @transaction.atomic
