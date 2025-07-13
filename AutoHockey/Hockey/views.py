@@ -10,7 +10,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django import forms
 import json
 from itertools import combinations
-
+from collections import defaultdict
 
 def index(request):
     return render(request, 'hockey/index.html')
@@ -100,29 +100,84 @@ def rating(request):
     return render(request, 'hockey/rating.html', {'players': players_data})
 
 
-def generate_round_robin_schedule(players):
-    """Генерация расписания с ротацией игроков между командами"""
+def generate_balanced_schedule(players):
+    """
+    players: список из 12 игроков. Первые два - вратари.
+    Возвращает список из 10 игр: {'blue': [...], 'red': [...]}
+    """
     num_players = len(players)
-    num_games = 10  # Количество игр в турнире
+    num_games = 10
+    assert num_players == 12, "Пока поддерживается только 12 игроков"
+
+    # Инициализация счётчиков партнёрств и соперничеств
+    teammate_counts = defaultdict(lambda: defaultdict(int))
+    opponent_counts = defaultdict(lambda: defaultdict(int))
+
     schedule = []
-    
-    for game_num in range(1, num_games + 1):
-        # Разделяем игроков на две команды с ротацией
-        if game_num % 2 == 0:
-            blue_team = players[:num_players//2]
-            red_team = players[num_players//2:]
-        else:
-            # Чередуем разделение для ротации
-            blue_team = players[::2] + players[1::2][:num_players//2 - len(players[::2])]
-            red_team = [p for p in players if p not in blue_team]
-        
-        # Сохраняем индексы игроков для каждой команды
-        team_indices = {
-            'blue': [i for i, p in enumerate(players) if p in blue_team],
-            'red': [i for i, p in enumerate(players) if p in red_team]
-        }
-        schedule.append(team_indices)
-    
+
+    player_indices = list(range(num_players))
+    gk1, gk2 = 0, 1  # индексы вратарей
+
+    for game_num in range(num_games):
+        # Вратари по умолчанию
+        blue_team = [gk1]
+        red_team = [gk2]
+
+        # Кандидаты на остальные места
+        fielders = [i for i in player_indices if i not in (gk1, gk2)]
+
+        # Случайная перестановка для разнообразия
+        random.shuffle(fielders)
+
+        best_score = None
+        best_split = None
+
+        # Генерируем все возможные комбинации для разделения 10 игроков на 5 + 5
+        from itertools import combinations
+
+        for blue_f in combinations(fielders, 5):
+            red_f = [i for i in fielders if i not in blue_f]
+
+            curr_blue = blue_team + list(blue_f)
+            curr_red = red_team + red_f
+
+            # Оценка "разбалансированности"
+            team_score = 0
+
+            # Партнёры
+            for team in [curr_blue, curr_red]:
+                for i in team:
+                    for j in team:
+                        if i != j:
+                            team_score += teammate_counts[i][j]
+
+            # Противники
+            for i in curr_blue:
+                for j in curr_red:
+                    team_score += opponent_counts[i][j]
+
+            # Ищем вариант с минимальным количеством повторов
+            if best_score is None or team_score < best_score:
+                best_score = team_score
+                best_split = {'blue': curr_blue, 'red': curr_red}
+
+        # Обновляем счётчики
+        blue = best_split['blue']
+        red = best_split['red']
+
+        for team in [blue, red]:
+            for i in team:
+                for j in team:
+                    if i != j:
+                        teammate_counts[i][j] += 1
+
+        for i in blue:
+            for j in red:
+                opponent_counts[i][j] += 1
+                opponent_counts[j][i] += 1
+
+        schedule.append(best_split)
+
     return schedule
 
 
@@ -145,12 +200,19 @@ def tournament(request):
             goalkeepers.append(random_player)
             field_players.remove(random_player)
         
-        # Создаем список всех игроков
-        all_players = goalkeepers + field_players
-        random.shuffle(all_players)
+        # Определяем двух вратарей строго: gk1 и gk2
+        random.shuffle(goalkeepers)
+        gk1, gk2 = goalkeepers[0], goalkeepers[1]
+
+        # Перемешиваем полевых
+        random.shuffle(field_players)
+
+        # Собираем итоговый список: сначала gk1, затем gk2, потом остальные
+        all_players = [gk1, gk2] + field_players
+
         
         # Генерируем расписание с ротацией
-        schedule = generate_round_robin_schedule(all_players)
+        schedule = generate_balanced_schedule(all_players)
         
         # Создаем таблицу турнира
         table = TournamentTable.objects.create(
@@ -216,7 +278,8 @@ def create_tournament_table(tournament, players):
     random.shuffle(all_players)
     
     # Генерируем расписание с ротацией
-    schedule = generate_round_robin_schedule(all_players)
+    schedule = generate_balanced_schedule(all_players)
+
     
     # Создаем таблицу турнира
     table = TournamentTable.objects.create(
