@@ -337,5 +337,18 @@ def save_tournament_results(request, tournament_id, table_id):
         result.total_score = total_score
         result.save()
 
+        # Обновляем рейтинг игрока
+        player_profile = result.player.userprofile
+        if player_profile.skill_level:
+            try:
+                current_rating = float(player_profile.skill_level)
+            except (ValueError, TypeError):
+                current_rating = 0.0
+            
+            # Добавляем разницу, умноженную на 50
+            new_rating = int(current_rating + (total_score * 50))
+            player_profile.skill_level = str(new_rating)
+            player_profile.save()
+
     return redirect('tournament')
 
