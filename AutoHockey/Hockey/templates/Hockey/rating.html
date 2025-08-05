@@ -4,96 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Хоккейные турниры</title>
-    <style>
-
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #fff;
-    color: #000;
-}
-
-header {
-    height: 85px;
-    background-color: #1166c4;
-    padding: 10px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 3px solid #000;
-}
-
-.navbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-}
-
-.logo {
-    height: 60px;
-    margin-right: 40px;
-}
-
-.nav-links {
-    display: flex;
-    list-style: none;
-    gap: 25px;
-    padding: 0;
-}
-
-.nav-links li a {
-    color: #000;
-    font-size: 20px;
-    font-weight: bold;
-    text-decoration: none;
-}
-
-.profile-icon {
-    font-size: 24px;
-    color: white;
-    display: block;
-}
-
-main {
-    padding: 40px 20px;
-    text-align: center;
-}
-
-main h1 {
-    font-size: 28px;
-    margin-bottom: 30px;
-}
-
-.image-container img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-}
-
-
-/* СТИЛИ ДЛЯ ТАБЛИЦЫ */
-table {
-            width: 80%;
-            margin: 0 auto;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        th, td {
-            padding: 12px 20px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        th {
-            background-color: #1166c4;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f0f4fa;
-        }
-
-    </style>
+    <link rel="stylesheet" href="{% static 'Hockey/css/fonts.css' %}">
+    <link rel="stylesheet" href="{% static 'Hockey/css/style.css' %}">
 </head>
 <body>
     <header>
@@ -104,8 +16,8 @@ table {
                     <li><a href="../">Главная</a></li>
                     <li><a href="{% url 'tournament' %}">Турниры</a></li>
                     <li><a href="{% url 'rating' %}">Рейтинги</a></li>
-                    <li><a href="#">О нас</a></li>
-                    <li><a href="#">Контакты</a></li>
+                    <li><a href="{% url 'index' %}#about">О нас</a></li>
+                    <li><a href="{% url 'index' %}#contacts">Контакты</a></li>
                 </ul>
             </nav>
             <a class="profile-icon" href="{% url 'profile' %}"><img src="{% static 'Hockey/user.svg' %}"></a>
