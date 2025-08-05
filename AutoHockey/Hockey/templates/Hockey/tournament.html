@@ -6,118 +6,8 @@
 <head>
     <meta charset="UTF-8">
     <title>Хоккейные турниры</title>
-    <style>
-
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #fff;
-    color: #000;
-}
-
-header {
-    height: 85px;
-    background-color: #1166c4;
-    padding: 10px 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 3px solid #000;
-}
-
-.navbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-}
-
-.logo {
-    height: 60px;
-    margin-right: 40px;
-}
-
-.nav-links {
-    display: flex;
-    list-style: none;
-    gap: 25px;
-    padding: 0;
-}
-
-.nav-links li a {
-    color: #000;
-    font-size: 20px;
-    font-weight: bold;
-    text-decoration: none;
-}
-
-.profile-icon {
-    font-size: 24px;
-    color: white;
-    display: block;
-}
-
-main {
-    padding: 40px 20px;
-    text-align: center;
-}
-
-main h1 {
-    font-size: 28px;
-    margin-bottom: 30px;
-}
-
-.image-container img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-}
-
-
-
-
-        .team-blue {
-            background-color: #d4e6f7;
-        }
-        .team-red {
-            background-color: #f7d4d4;
-        }
-        .red-score {
-            background-color: #f7d4d4;
-            color: black;
-            width: 30px;
-            border: 1px solid #ff0000;
-        }
-        .blue-score {
-            background-color: #d4e6f7;
-            color: black;
-            width: 30px;
-            border: 1px solid #0000ff;
-        }
-        .score-input-row input {
-            text-align: center;
-        }
-        .tournament-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-        }
-        .tournament-table th, .tournament-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        .tournament-table th {
-            background-color: #f2f2f2;
-        }
-        /* Убираем фон у ячеек с номерами, именами и разницей */
-        .tournament-table tbody td:first-child,
-        .tournament-table tbody td:nth-child(2),
-        .tournament-table tbody td.total-score {
-            background-color: transparent !important;
-        }
-
-    </style>
+    <link rel="stylesheet" href="{% static 'Hockey/css/fonts.css' %}">
+    <link rel="stylesheet" href="{% static 'Hockey/css/style.css' %}">
 </head>
 <body>
     <header>
@@ -128,8 +18,8 @@ main h1 {
                     <li><a href="../">Главная</a></li>
                     <li><a href="{% url 'tournament' %}">Турниры</a></li>
                     <li><a href="{% url 'rating' %}">Рейтинги</a></li>
-                    <li><a href="#">О нас</a></li>
-                    <li><a href="#">Контакты</a></li>
+                    <li><a href="{% url 'index' %}#about">О нас</a></li>
+                    <li><a href="{% url 'index' %}#contacts">Контакты</a></li>
                 </ul>
             </nav>
             <a class="profile-icon" href="{% url 'profile' %}"><img src="{% static 'Hockey/user.svg' %}"></a>
